@@ -14,7 +14,7 @@
                 return {previous: current, durations: acc.durations.concat(current - acc.previous)}
             }, {}).durations;
         const average = values => values.reduce((acc, cur) => acc + cur) / values.length
-        const toFrequency = timings => average(toDurations([...timings].sort()));
+        const toFrequency = timings => 1.0 / average(toDurations([...timings].sort()));
 
         const logMaxMinuites = 15;
         const watch = logs => fetch(url)
@@ -32,7 +32,7 @@
                 const previousFrequency = toFrequency(previousTimings);
                 console.log("previousFrequency: " + previousFrequency);
 
-                if (currentFrequency > (previousFrequency * (100 + threshold) / 100)) beep();
+                if (currentFrequency < (previousFrequency * (100 + threshold) / 100)) beep();
             }
             
             const logFilter = timing => (now - new Date(timing)) < logMaxMinuites * 60 *1000;
