@@ -23,7 +23,7 @@
             const now = Date.now();
 
             const currentTimings = obj.items.map(i => i.snippet.publishedAt);            
-            const currentFrequency = toFrequency(currentTimings);
+            const currentFrequency = currentTimings.length > 0 ? toFrequency(currentTimings) : 0;
             console.log("currentFrequency: " + currentFrequency);
 
             const previousTimings = [...logs.values()];
