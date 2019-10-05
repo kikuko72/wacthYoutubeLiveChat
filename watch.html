@@ -7,24 +7,43 @@
         const liveChatId = queries.get('liveChatId');
         const threshold = parseInt(queries.get('threshold')) || 5;
         const url = 'https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=' + liveChatId + '&part=snippet&key=' + apiKey
-        var buffer = [75, 75, 75, 75]; // initial
-        const watch = () => fetch(url)
+
+        const toDurations = timings => timings.reduce((acc, cur) => {
+                const current = new Date(cur);
+                if (typeof acc.previous === 'undefined') return {previous: current, durations: []};
+                return {previous: current, durations: acc.durations.concat(current - acc.previous)}
+            }, {}).durations;
+        const average = values => values.reduce((acc, cur) => acc + cur) / values.length
+        const toFrequency = timings => average(toDurations([...timings].sort()));
+
+        const logMaxMinuites = 15;
+        const watch = logs => fetch(url)
         .then(res => res.json())
         .then(obj => {
-            const count = parseInt(obj.pageInfo.totalResults); 
-            console.log('totalResults: ' + count);
+            const now = Date.now();
 
-            buffer.shift();
-            buffer.push(count);
-            const average = buffer.reduce((acc, cur) => acc + cur) / buffer.length
+            const currentTimings = obj.items.map(i => i.snippet.publishedAt);            
+            const currentFrequency = toFrequency(currentTimings);
+            console.log("currentFrequency: " + currentFrequency);
 
-            if (count > (average * (100 + threshold) / 100)) beep();
+            const previousTimings = [...logs.values()];
+
+            if (previousTimings.length > 0) {
+                const previousFrequency = toFrequency(previousTimings);
+                console.log("previousFrequency: " + previousFrequency);
+
+                if (currentFrequency > (previousFrequency * (100 + threshold) / 100)) beep();
+            }
+            
+            const logFilter = timing => (now - new Date(timing)) < logMaxMinuites * 60 *1000;
+            const altLogs = new Set(previousTimings.concat(currentTimings).filter(logFilter));
 
             const pollingIntervalMillis = parseInt(obj.pollingIntervalMillis); 
             console.log('pollingIntervalMillis: ' + pollingIntervalMillis);
-            setTimeout(watch, pollingIntervalMillis);
+
+            setTimeout(() => watch(altLogs), pollingIntervalMillis);
         });
-        watch();
+        watch(new Set());
     </script>
 </body>
 </html>
